@@ -1,0 +1,134 @@
+'''
+carreras_controler.py: Contiene el controlador de Carreras.
+'''
+from views.carreras_view import carreras_view, modalWindow
+from models.carreras_model import carreras_model
+
+class carreras_controler():
+    '''Nombres_controller se encarga de manejar la vista y el modelo.
+    '''
+    def __init__(self, root: object) -> None:
+        self.root = root
+        # Instancia el modelo.
+        self.model = carreras_model()
+        # Crea  un istancia la vista.
+        self.view = carreras_view(self.root)
+        # Añade la función addToTreeview al botón de agregar.
+        self.view.buttonAdd["command"] = self.addToTreeview
+        # Añade la función removeFromTreeview al botón de eliminar.
+        self.view.buttonUpdate["command"] = self.updateFromTreeview
+        # Añade la función updateFromTreeview al botón de actualizar.
+        self.view.buttonRemove["command"] = self.removeFromTreeview
+        # Añade la función loadTreeviewToEntry al evento de selección de fila.
+        self.view.buttonExit["command"] = self.__del__
+
+        # Añade la función loadTreeviewToEntry al evento de selección de fila.
+        #self.view.treeview.bind('<<TreeviewSelect>>', self.loadTreeviewToEntry)
+        # Carga los datos de la base de datos al treeview.
+        self.loadToTreeview()
+
+        pass
+
+    def loadToTreeview(self):
+        '''loadToTreeview Carga los datos de la base de datos al treeview.
+        '''
+        data = self.model.getAllData()
+        self.view.setTreeview(data)
+
+    def addToTreeview(self):
+        '''addToTreeview Agrega un registro a la base de datos y al treeview.'''
+        # Crea una instancia de la ventana modal
+        self.modal = modalWindow(self.root, 'Altas de Carreras')
+
+        #Solo si hay un registro seleccionado el el treeview.
+        if self.modal.buttonClicked:
+            if self.modal.textvarNombre.get() != '' and \
+                self.modal.textvarInicio.get() != '' and \
+                self.modal.textvarFin.get() != '' and \
+                self.modal.textvarDuracion.get() != '' :
+
+                self.addToDB()
+                self.loadToTreeview()
+                self.clearForm()
+            else:
+                self.view.showMessageBox(message='Debe llenar todos los campos.', title='Error', type='error')
+
+    def removeFromTreeview(self):
+        '''removeFromTreeview Elimina un registro de la base de datos y del treeview.'''
+        #Solo si hay un registro seleccionado el el treeview.
+        if self.view.treeview.selection():
+            # Crea una instancia de la ventana modal
+            self.modal = modalWindow(self.root, 'Bajas de Carreras', self.loadTreeviewToEntry())
+
+            if self.modal.buttonClicked:
+                    self.removeFromDB()
+                    self.loadToTreeview()
+                    self.clearForm()
+
+    def updateFromTreeview(self):
+        '''updateFromTreeview Actualiza un registro de la base de datos y del treeview.'''
+        #Solo si hay un registro seleccionado el el treeview.
+        if self.view.treeview.selection():
+            # Crea una instancia de la ventana modal
+            self.modal = modalWindow(self.root, 'Modificación de Carreras', self.loadTreeviewToEntry())
+
+            if self.modal.buttonClicked:
+                    self.updateDB()
+                    self.loadToTreeview()
+                    self.clearForm()
+
+    def loadTreeviewToEntry(self, event=None):
+        #Solo si hay un registro seleccionado el el treeview.
+        if self.view.treeview.selection():
+            self.id = self.view.getCursorId()
+            self.Nombre = self.view.getCursorNombre()
+            self.inicio = self.view.getCursorInicio()
+            self.fin = self.view.getCursorFin()
+            self.duracion = self.view.getCursorDuracion()
+
+        return (self.id,
+                self.Nombre,
+                self.inicio,
+                self.fin,
+                self.duracion)
+
+    def addToDB(self):
+        Nombre = self.modal.getNombre()
+        inicio = self.modal.getInicio()
+        fin = self.modal.getFin()
+        duracion = self.modal.getDuracion()
+        self.model.create(Nombre, inicio, fin, duracion)
+
+    def updateDB(self):
+        id = self.view.getCursorId()
+        nombre = self.modal.getNombre()
+        inicio = self.modal.getInicio()
+        fin = self.modal.getFin()
+        duracion = self.modal.getDuracion()
+        self.model.update(id, nombre, inicio, fin, duracion)
+
+    def removeFromDB(self):
+        id = self.view.getCursorId()
+        self.model.delete(id)
+
+    def clearForm(self):
+        self.modal.setId('')
+        self.modal.setNombre('')
+        self.modal.setInicio('')
+        self.modal.setFin('')
+        self.modal.setDuracion(0)
+
+        #Deselecciona fila de treeview.
+        self.view.treeview.selection_remove(self.view.treeview.selection())
+
+        return
+
+    def __del__(self) -> None:
+        #self.model.__del__
+        #self.view.__del__
+        
+        self.view.ventana_modal.destroy()
+        self.view.frame3.destroy()
+        self.view.frame4.destroy()
+
+        #del self
